@@ -66,3 +66,6 @@ venv.bak/
 
 # Logs
 *.log
+
+*retinanet.pt
+*faster_rcnn.pt
