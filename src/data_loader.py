@@ -14,12 +14,12 @@ def load_experiments(json_path="experiments.json"):
         return []
 
 def get_available_models(models_dir="models"):
-    """Returns a list of available model files in the models directory."""
+    """Returns a list of available model files in the models directory and subdirectories."""
     if not os.path.exists(models_dir):
         return []
-    
-    # Looking for .pt files which are typical for YOLO and PyTorch
-    pattern = os.path.join(models_dir, "*.pt")
-    models = glob.glob(pattern)
-    # Return just the filenames
-    return sorted([os.path.basename(m) for m in models])
+
+    pattern = os.path.join(models_dir, "**", "*.pt")
+    models = glob.glob(pattern, recursive=True)
+
+    # Return relative paths so folders are preserved
+    return sorted([os.path.relpath(m, models_dir) for m in models])

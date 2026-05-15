@@ -2,3 +2,5 @@ streamlit
 pandas
 ultralytics
 opencv-python
+matplotlib
+sahi
