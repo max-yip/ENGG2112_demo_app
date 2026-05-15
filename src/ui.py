@@ -43,11 +43,17 @@ def render_tab2():
     col1, col2 = st.columns(2)
     with col1:
         model1_name = st.selectbox("Select Model 1:", available_models, key="mod1")
+        use_sahi1 = False
+        if "retinanet" not in model1_name.lower() and "faster" not in model1_name.lower():
+            use_sahi1 = st.toggle("Use SAHI", key="sahi1")
     with col2:
         # Default to the same model if only one exists, or second model if possible
         model2_idx = 1 if len(available_models) > 1 else 0
         model2_name = st.selectbox("Select Model 2:", available_models, index=model2_idx, key="mod2")
-        
+        use_sahi2 = False
+        if "retinanet" not in model2_name.lower() and "faster" not in model2_name.lower():
+            use_sahi2 = st.toggle("Use SAHI", key="sahi2")
+            
     conf_threshold = st.slider("Detection Threshold", min_value=0.0, max_value=1.0, value=0.25, step=0.05)
         
     # Play controls
@@ -70,8 +76,8 @@ def render_tab2():
         stop_btn = stop_placeholder.button("Stop Inference", key="stop_btn")
         
         with st.spinner("Loading models..."):
-            m1, status1 = load_model(model1_name)
-            m2, status2 = load_model(model2_name)
+            m1, status1, path1 = load_model(model1_name)
+            m2, status2, path2 = load_model(model2_name)
             
         if m1 is None:
             metric_placeholder1.error(f"Failed to load {model1_name}. {status1}")
@@ -82,7 +88,11 @@ def render_tab2():
         video_path = "ENGG2112 demo.mp4"
         
         # Start generator
-        for frame1, frame2, metrics1, metrics2, is_finished in process_video(video_path, m1, m2, conf_threshold):
+        for frame1, frame2, metrics1, metrics2, is_finished in process_video(
+            video_path, m1, m2, conf_threshold, 
+            use_sahi1=use_sahi1, use_sahi2=use_sahi2, 
+            path1=path1, path2=path2
+        ):
             if stop_btn or is_finished:
                 break
                 
