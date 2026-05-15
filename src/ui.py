@@ -87,9 +87,9 @@ def render_tab2():
                 break
                 
             if frame1 is not None:
-                img_placeholder1.image(frame1, channels="RGB", use_container_width=True)
+                img_placeholder1.image(frame1, channels="RGB", width="stretch")
             if frame2 is not None:
-                img_placeholder2.image(frame2, channels="RGB", use_container_width=True)
+                img_placeholder2.image(frame2, channels="RGB", width="stretch")
                 
             # Update metrics text
             if "Speed" in metrics1:
