@@ -33,7 +33,10 @@ def render_tab1():
         col4, col5, col6 = st.columns(3)
         col4.metric("Recall", f"{selected_exp.get('R', 0):.4f}")
         col5.metric("Epochs", f"{selected_exp.get('epochs', 0)}")
-        col6.metric("F1 Score", f"{selected_exp.get('F1_Score', 0)}")
+        p = selected_exp.get('P', 0)
+        r = selected_exp.get('R', 0)
+        f1_score = 2 * (p * r) / (p + r + 1e-6)
+        col6.metric("F1 Score", f"{f1_score:.4f}")
         
         # Check for training results directory
         results_dir = os.path.join("models", selected_exp['name'])
