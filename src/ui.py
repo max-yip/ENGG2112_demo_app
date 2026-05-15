@@ -1,5 +1,8 @@
 import streamlit as st
 import pandas as pd
+import os
+import altair as alt
+import matplotlib.pyplot as plt
 from .data_loader import load_experiments, get_available_models
 from .inference import load_model, process_video
 
@@ -30,7 +33,85 @@ def render_tab1():
         col4, col5, col6 = st.columns(3)
         col4.metric("Recall", f"{selected_exp.get('R', 0):.4f}")
         col5.metric("Epochs", f"{selected_exp.get('epochs', 0)}")
-        col6.metric("Image Size", f"{selected_exp.get('img_size', 0)}")
+        p = selected_exp.get('P', 0)
+        r = selected_exp.get('R', 0)
+        f1_score = 2 * (p * r) / (p + r + 1e-6)
+        col6.metric("F1 Score", f"{f1_score:.4f}")
+        
+        # Check for training results directory
+        results_dir = os.path.join("models", selected_exp['name'])
+        if os.path.exists(results_dir):
+            st.subheader("Training Images")
+            
+            # Display the 3 training images
+            image_files = ["BoxF1_curve.png", "BoxPR_curve.png", "BoxP_curve.png"]
+            cols = st.columns(3)
+            
+            for i, img_file in enumerate(image_files):
+                img_path = os.path.join(results_dir, img_file)
+                if os.path.exists(img_path):
+                    with cols[i]:
+                        st.image(img_path, caption=img_file.replace("_", " ").replace(".png", ""), width='stretch')
+                else:
+                    with cols[i]:
+                        st.warning(f"{img_file} not found")
+            
+            # Load and plot results.csv
+            csv_path = os.path.join(results_dir, "results.csv")
+            if os.path.exists(csv_path):
+                st.subheader("Training Metrics Over Epochs")
+                try:
+                    df = pd.read_csv(csv_path)
+                    
+                    # Clean column names
+                    df.columns = df.columns.str.strip()
+                    
+                    # Plot key metrics
+                    metrics_to_plot = [
+                        ('metrics/mAP50(B)', 'mAP@50'),
+                        ('metrics/mAP50-95(B)', 'mAP@50-95'),
+                        ('metrics/precision(B)', 'Precision'),
+                        ('metrics/recall(B)', 'Recall'),
+                        ('train/box_loss', 'Train Box Loss'),
+                        ('val/box_loss', 'Val Box Loss')
+                    ]
+                    
+                    # Loop through metrics in chunks of 3 to create rows
+                    for i in range(0, len(metrics_to_plot), 3):
+                        cols = st.columns(3) # Create 3 columns per row
+                        
+                        for j in range(3):
+                            if i + j < len(metrics_to_plot):
+                                col_name, display_name = metrics_to_plot[i + j]
+                                
+                                with cols[j]:
+                                    if col_name in df.columns:
+                                        plot_df = df[['epoch', col_name]].rename(columns={col_name: display_name})
+                                        
+                                        # Force the scale to zoom in tightly around the actual data points
+                                        y_scale = alt.Scale(zero=False)
+                                            
+                                        # Create interactive chart with fixed square dimensions
+                                        chart = alt.Chart(plot_df).mark_line(point=True).encode(
+                                            x=alt.X('epoch:Q', title='Epoch'),
+                                            y=alt.Y(f'{display_name}:Q', title=display_name, scale=y_scale),
+                                            tooltip=['epoch', display_name]
+                                        ).properties(
+                                            width=250,  # Exact width
+                                            height=250  # Exact height (Square)
+                                        ).interactive()
+                                        
+                                        # Drop 'use_container_width' to enforce the square aspect ratio
+                                        st.altair_chart(chart)
+                                    else:
+                                        st.warning(f"Column '{col_name}' not found")
+                                        
+                except Exception as e:
+                    st.error(f"Error loading results.csv: {e}")
+            else:
+                st.info("No results.csv found for this experiment")
+        else:
+            st.info(f"No training results directory found at {results_dir}")
 
 def render_tab2():
     st.header("Side-by-Side Video Inference")
